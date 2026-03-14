@@ -1,2 +1,466 @@
-# Roblox-Script
-Roblox Script for HiddenDev
+local Players = game:GetService("Players")
+local DataStoreService = game:GetService("DataStoreService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Teams = game:GetService("Teams")
+
+local PromoteEvent = ReplicatedStorage:WaitForChild("PromoteEvent")
+local DemoteEvent = ReplicatedStorage:WaitForChild("DemoteEvent")
+local SwitchDivisionEvent = ReplicatedStorage:WaitForChild("SwitchDivisionEvent")
+
+--------------------------------------------------
+-- DATASTORE
+--------------------------------------------------
+
+local RankStore = DataStoreService:GetDataStore("MilitaryRanks_V1")
+
+local MOD_TEAM = "Ministry of Defence"
+local USMC_TEAM = "USMC"
+local CIV_TEAM = "Civilian"
+local INS_TEAM = "Insurgency"
+
+--------------------------------------------------
+-- OWNER
+--------------------------------------------------
+
+local OWNERS = {
+	"olinsbolinss",
+	"emmils77"
+}
+
+
+local COLORS = {
+	[MOD_TEAM] = Color3.fromRGB(0,170,255),
+	[USMC_TEAM] = Color3.fromRGB(200,0,0),
+	[CIV_TEAM] = Color3.fromRGB(0,255,0),
+	[INS_TEAM] = Color3.fromRGB(255,80,80)
+}
+
+
+
+local LOGOS = {
+	[MOD_TEAM] = "rbxassetid://87708441776261",
+	[USMC_TEAM] = "rbxassetid://106313607292518"
+}
+
+
+
+local RankPower = {
+	["O-3 | Captain"] = 30,
+	["O-4 | Major"] = 40,
+	["O-5 | Lieutenant Colonel"] = 50,
+	["O-6 | Colonel"] = 60,
+	["O-7 | Brigadier General"] = 70,
+	["O-8 | Major General"] = 80,
+	["O-9 | Lieutenant General"] = 90,
+	["O-10 | General"] = 100,
+	["Director"] = 80
+}
+
+
+local PlayerData = {}
+
+
+local function isOwner(player)
+	for _, name in ipairs(OWNERS) do
+		if player.Name == name then
+			return true
+		end
+	end
+	return false
+end
+
+local function hasHRPermission(player)
+	if isOwner(player) then
+		return true
+	end
+
+	local data = PlayerData[player.UserId]
+	if not data then return false end
+
+	local power = RankPower[data.Rank]
+	return power and power >= 30
+end
+
+
+
+local function savePlayer(player)
+	if not PlayerData[player.UserId] then return end
+
+	pcall(function()
+		RankStore:SetAsync(player.UserId, PlayerData[player.UserId])
+	end)
+end
+
+
+
+local function loadPlayer(player)
+	local data
+
+	pcall(function()
+		data = RankStore:GetAsync(player.UserId)
+	end)
+
+	if not data then
+		data = {
+			Team = CIV_TEAM,
+			Rank = "Civilian",
+			Division = nil
+		}
+	end
+
+	PlayerData[player.UserId] = data
+	player:SetAttribute("Division", data.Division)
+
+	local teamObj = Teams:FindFirstChild(data.Team)
+	if teamObj then
+		player.Team = teamObj
+	end
+end
+
+
+
+local DEVS = {
+	"emmils77",
+	"olinsbolinss"
+}
+
+local PARTNERS = {
+	"emmils77",
+	"olinsbolinss"
+}
+
+
+
+local ICONS = {
+	Developer = "rbxassetid://106460759856655",
+	Partner = "rbxassetid://117673785826496",
+	ChatGreen = "rbxassetid://91088131950898",
+	ChatRed = "rbxassetid://76674642637002"
+}
+
+-- 🛡 LEFT SIDE TEAM LOGOS
+local TEAM_LOGOS = {
+	[MOD_TEAM] = "rbxassetid://87708441776261",
+	[USMC_TEAM] = "rbxassetid://106313607292518"
+}
+
+
+
+local RANK_INSIGNIA = {
+
+	-- ENLISTED
+	["E-1 | Private"] = "rbxassetid://119325186747285",
+	["E-2 | Private First Class"] = "rbxassetid://119325186747285",
+	["E-3 | Lance Corporal"] = "rbxassetid://103950412182473",
+	["E-4 | Corporal"] = "rbxassetid://110058458860871",
+	["E-5 | Sergeant"] = "rbxassetid://86033703405772",
+	["E-6 | Staff Sergeant"] = "rbxassetid://129572103745562",
+	["E-7 | Gunnery Sergeant"] = "rbxassetid://120551108978211",
+	["E-8 | Master Sergeant"] = "rbxassetid://79399589847009",
+	["E-9 | Master Gunnery Sergeant"] = "rbxassetid://79850737874315",
+	["E-10 | Sergeant Major"] = "rbxassetid://88402067925624",
+
+	-- WARRANT OFFICERS
+	["W-1 | Warrant Officer 1"] = "rbxassetid://72110856171583",
+	["W-2 | Chief Warrant Officer 2"] = "rbxassetid://129637413721392",
+	["W-3 | Chief Warrant Officer 3"] = "rbxassetid://132983536004645",
+	["W-4 | Chief Warrant Officer 4"] = "rbxassetid://88435636977802",
+	["W-5 | Chief Warrant Officer 5"] = "rbxassetid://121416869028978",
+
+	-- COMMISSIONED OFFICERS
+	["O-1 | Second Lieutenant"] = "rbxassetid://106213603266616",
+	["O-2 | First Lieutenant"] = "rbxassetid://102200888575818",
+	["O-3 | Captain"] = "rbxassetid://84153637989252",
+	["O-4 | Major"] = "rbxassetid://104075987841739",
+	["O-5 | Lieutenant Colonel"] = "rbxassetid://131315633740287",
+	["O-6 | Colonel"] = "rbxassetid://81721657966630",
+	["O-7 | Brigadier General"] = "rbxassetid://136944548764150",
+	["O-8 | Major General"] = "rbxassetid://74797283948883",
+	["O-9 | Lieutenant General"] = "rbxassetid://76242893283678",
+	["O-10 | General"] = "rbxassetid://108369220899812",
+
+	-- MOD / SPECIAL
+	["Analyst"] = "rbxassetid://PUT_ID",
+	["Agent"] = "rbxassetid://PUT_ID",
+	["Senior Agent"] = "rbxassetid://PUT_ID",
+	["Supervisor"] = "rbxassetid://PUT_ID",
+	["Head"] = "rbxassetid://PUT_ID",
+	["Minister of Defense"] = "rbxassetid://PUT_ID",
+	["Director"] = "rbxassetid://PUT_ID"
+}
+
+local function inTable(tab, value)
+	for _,v in ipairs(tab) do
+		if v == value then
+			return true
+		end
+	end
+	return false
+end
+
+local function createTag(character, player)
+
+	local head = character:WaitForChild("Head",5)
+	if not head then return end
+
+	if head:FindFirstChild("MilitaryTag") then
+		head.MilitaryTag:Destroy()
+	end
+
+	local data = PlayerData[player.UserId]
+	if not data then return end
+
+	local gui = Instance.new("BillboardGui")
+	gui.Name = "MilitaryTag"
+	gui.Size = UDim2.new(0,420,0,125) -- tighter
+	gui.StudsOffset = Vector3.new(0,2.8,0)
+	gui.AlwaysOnTop = false
+	gui.MaxDistance = 20
+	gui.Parent = head
+
+
+
+	local iconFrame = Instance.new("Frame")
+	iconFrame.Size = UDim2.new(1,0,0,30)
+	iconFrame.Position = UDim2.new(0,0,0,0)
+	iconFrame.BackgroundTransparency = 1
+	iconFrame.Parent = gui
+
+	local layout = Instance.new("UIListLayout")
+	layout.FillDirection = Enum.FillDirection.Horizontal
+	layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	layout.VerticalAlignment = Enum.VerticalAlignment.Center
+	layout.Padding = UDim.new(0,8)
+	layout.Parent = iconFrame
+
+	local function addIcon(id)
+		local icon = Instance.new("ImageLabel")
+		icon.Size = UDim2.new(0,24,0,24)
+		icon.BackgroundTransparency = 1
+		icon.ScaleType = Enum.ScaleType.Fit
+		icon.Image = id
+		icon.Parent = iconFrame
+	end
+
+	if inTable(DEVS, player.Name) then
+		addIcon(ICONS.Developer)
+	end
+
+	if inTable(PARTNERS, player.Name) then
+		addIcon(ICONS.Partner)
+	end
+
+	if player.AccountAge < 13 then
+		addIcon(ICONS.ChatRed)
+	else
+		addIcon(ICONS.ChatGreen)
+	end
+
+
+
+	local nameLabel = Instance.new("TextLabel")
+	nameLabel.Size = UDim2.new(1,0,0,32)
+	nameLabel.Position = UDim2.new(0,0,0,28)
+	nameLabel.BackgroundTransparency = 1
+	nameLabel.TextScaled = true
+	nameLabel.Font = Enum.Font.GothamBold
+	nameLabel.Text = player.Name
+	nameLabel.TextColor3 = Color3.new(1,1,1)
+	nameLabel.TextStrokeTransparency = 0
+	nameLabel.Parent = gui
+
+
+
+	local rankLabel = Instance.new("TextLabel")
+	rankLabel.Size = UDim2.new(1,0,0,24)
+	rankLabel.Position = UDim2.new(0,0,0,60)
+	rankLabel.BackgroundTransparency = 1
+	rankLabel.TextScaled = true
+	rankLabel.Font = Enum.Font.Gotham
+	rankLabel.Text = data.Rank or ""
+	rankLabel.TextColor3 = Color3.fromRGB(200,0,0)
+	rankLabel.TextStrokeTransparency = 0
+	rankLabel.Parent = gui
+
+
+
+	local bottomFrame = Instance.new("Frame")
+	bottomFrame.Size = UDim2.new(1,0,0,38)
+	bottomFrame.Position = UDim2.new(0,0,1,-38)
+	bottomFrame.BackgroundTransparency = 1
+	bottomFrame.Parent = gui
+
+	-- LEFT TEAM LOGO
+	if TEAM_LOGOS[data.Team] then
+		local logo = Instance.new("ImageLabel")
+		logo.Size = UDim2.new(0,38,0,38)
+		logo.Position = UDim2.new(0,50,0,0)
+		logo.BackgroundTransparency = 1
+		logo.ScaleType = Enum.ScaleType.Fit
+		logo.Image = TEAM_LOGOS[data.Team]
+		logo.Parent = bottomFrame
+	end
+
+	-- CENTER DIVISION
+	local divisionLabel = Instance.new("TextLabel")
+	divisionLabel.Size = UDim2.new(1,-120,0,38)
+	divisionLabel.Position = UDim2.new(0,60,0,0)
+	divisionLabel.BackgroundTransparency = 1
+	divisionLabel.TextScaled = true
+	divisionLabel.Font = Enum.Font.Gotham
+	divisionLabel.Text = data.Division or ""
+	divisionLabel.TextColor3 = Color3.fromRGB(200,0,0)
+	divisionLabel.TextStrokeTransparency = 0
+	divisionLabel.Parent = bottomFrame
+
+	-- RIGHT RANK INSIGNIA
+	if RANK_INSIGNIA[data.Rank] then
+		local insignia = Instance.new("ImageLabel")
+
+		local width = 40
+		local height = 38
+
+		if string.find(data.Rank, "Lieutenant")
+			or string.find(data.Rank, "Warrant Officer")
+			or string.find(data.Rank, "Chief Warrant Officer") then
+			width = 28 -- narrower for bars
+		end
+
+		insignia.Size = UDim2.new(0,width,0,height)
+		insignia.Position = UDim2.new(1,-width-55,0,0)
+		insignia.BackgroundTransparency = 1
+		insignia.ScaleType = Enum.ScaleType.Fit
+		insignia.Image = RANK_INSIGNIA[data.Rank]
+		insignia.Parent = bottomFrame
+	end
+end
+
+
+
+PromoteEvent.OnServerEvent:Connect(function(player, targetUserId, teamName, newRank)
+
+	local target = Players:GetPlayerByUserId(targetUserId)
+	if not target then return end
+
+	local creatorIsOwner = false
+
+	if game.CreatorType == Enum.CreatorType.User then
+		creatorIsOwner = (player.UserId == game.CreatorId)
+	elseif game.CreatorType == Enum.CreatorType.Group then
+		creatorIsOwner = (player:GetRankInGroup(game.CreatorId) == 255)
+	end
+
+	local allowed = hasHRPermission(player)
+
+	if not (allowed or creatorIsOwner) then
+		warn("Promotion denied.")
+		return
+	end
+
+	if isOwner(target) and not isOwner(player) then
+		return
+	end
+
+	PlayerData[targetUserId].Team = teamName
+	PlayerData[targetUserId].Rank = newRank
+
+	local teamObj = Teams:FindFirstChild(teamName)
+	if teamObj then
+		target.Team = teamObj
+	end
+
+	savePlayer(target)
+
+	if target.Character then
+		createTag(target.Character, target)
+	end
+
+	print("Promotion successful.")
+end)
+
+
+
+DemoteEvent.OnServerEvent:Connect(function(admin, targetUserId)
+
+	if not hasHRPermission(admin) then return end
+
+	local target = Players:GetPlayerByUserId(targetUserId)
+	if not target then return end
+	if isOwner(target) then return end
+
+	PlayerData[targetUserId].Team = CIV_TEAM
+	PlayerData[targetUserId].Rank = "Civilian"
+	PlayerData[targetUserId].Division = nil
+
+	target.Team = Teams:FindFirstChild(CIV_TEAM)
+
+	savePlayer(target)
+
+	if target.Character then
+		createTag(target.Character, target)
+	end
+end)
+
+
+
+SwitchDivisionEvent.OnServerEvent:Connect(function(sender, targetUserId, team, division)
+
+	local target = Players:GetPlayerByUserId(targetUserId)
+	if not target then return end
+
+	if sender ~= target then
+		if not hasHRPermission(sender) then return end
+	end
+
+	PlayerData[targetUserId].Team = team
+	PlayerData[targetUserId].Division = division
+	target:SetAttribute("Division", division)
+
+	local teamObj = Teams:FindFirstChild(team)
+	if teamObj then
+		target.Team = teamObj
+	end
+
+	savePlayer(target)
+
+	if target.Character then
+		createTag(target.Character, target)
+	end
+end)
+
+
+
+local function setupPlayer(player)
+
+	loadPlayer(player)
+
+	local function onCharacter(character)
+		local head = character:WaitForChild("Head", 10)
+		if not head then return end
+		createTag(character, player)
+	end
+
+	player.CharacterAdded:Connect(onCharacter)
+
+	if player.Character then
+		onCharacter(player.Character)
+	end
+
+	player:GetPropertyChangedSignal("Team"):Connect(function()
+		if player.Character then
+			createTag(player.Character, player)
+		end
+	end)
+end
+
+
+
+Players.PlayerAdded:Connect(setupPlayer)
+
+for _, player in ipairs(Players:GetPlayers()) do
+	setupPlayer(player)
+end
+
+Players.PlayerRemoving:Connect(function(player)
+	savePlayer(player)
+end)
