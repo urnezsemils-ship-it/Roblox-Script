@@ -102,9 +102,9 @@ local function loadPlayer(player)
 
 	if not data then
 		data = {
-			Team = CIV_TEAM,
-			Rank = "Civilian",
-			Division = nil
+			Team = USMC_TEAM,
+			Rank = "E-1 | Private",
+			Division = "In Training"
 		}
 	end
 
@@ -291,7 +291,7 @@ local function createTag(character, player)
 	bottomFrame.Parent = gui
 
 	-- LEFT TEAM LOGO
-	if TEAM_LOGOS[data.Team] then
+	if data.Team ~= CIV_TEAM and data.Team ~= INS_TEAM and TEAM_LOGOS[data.Team] then
 		local logo = Instance.new("ImageLabel")
 		logo.Size = UDim2.new(0,38,0,38)
 		logo.Position = UDim2.new(0,50,0,0)
@@ -308,13 +308,17 @@ local function createTag(character, player)
 	divisionLabel.BackgroundTransparency = 1
 	divisionLabel.TextScaled = true
 	divisionLabel.Font = Enum.Font.Gotham
-	divisionLabel.Text = data.Division or ""
+	if data.Team == CIV_TEAM or data.Team == INS_TEAM then
+		divisionLabel.Text = ""
+	else
+		divisionLabel.Text = data.Division or ""
+	end
 	divisionLabel.TextColor3 = Color3.fromRGB(200,0,0)
 	divisionLabel.TextStrokeTransparency = 0
 	divisionLabel.Parent = bottomFrame
 
 	-- RIGHT RANK INSIGNIA
-	if RANK_INSIGNIA[data.Rank] then
+	if data.Team ~= CIV_TEAM and data.Team ~= INS_TEAM and RANK_INSIGNIA[data.Rank] then
 		local insignia = Instance.new("ImageLabel")
 
 		local width = 40
@@ -402,7 +406,6 @@ DemoteEvent.OnServerEvent:Connect(function(admin, targetUserId)
 end)
 
 
-
 SwitchDivisionEvent.OnServerEvent:Connect(function(sender, targetUserId, team, division)
 
 	local target = Players:GetPlayerByUserId(targetUserId)
@@ -412,9 +415,40 @@ SwitchDivisionEvent.OnServerEvent:Connect(function(sender, targetUserId, team, d
 		if not hasHRPermission(sender) then return end
 	end
 
-	PlayerData[targetUserId].Team = team
-	PlayerData[targetUserId].Division = division
-	target:SetAttribute("Division", division)
+	local data = PlayerData[targetUserId]
+	if not data then return end
+
+	-- SAVE previous military info before going civilian
+	if team == CIV_TEAM or team == INS_TEAM then
+		data.PreviousRank = data.Rank
+		data.PreviousDivision = data.Division
+	end
+
+	data.Team = team
+
+	-- Civilian / Insurgency behavior
+	if team == CIV_TEAM or team == INS_TEAM then
+		data.Rank = "Civilian"
+		data.Division = nil
+	else
+
+		-- restore rank
+		if data.Rank == "Civilian" and data.PreviousRank then
+			data.Rank = data.PreviousRank
+		end
+
+		-- restore division
+		if not data.Division and data.PreviousDivision then
+			data.Division = data.PreviousDivision
+		end
+
+		-- if player selects a new division
+		if division ~= nil then
+			data.Division = division
+		end
+	end
+
+	target:SetAttribute("Division", data.Division)
 
 	local teamObj = Teams:FindFirstChild(team)
 	if teamObj then
