@@ -126,7 +126,12 @@ local DEVS = {
 
 local PARTNERS = {
 	"emmils77",
-	"olinsbolinss"
+	"olinsbolinss",
+	"RagnarLYT",
+	"9ktv2000",
+	"byebyeONO6",
+	"MondChann",
+	"JoocyGains"
 }
 
 
@@ -418,22 +423,27 @@ SwitchDivisionEvent.OnServerEvent:Connect(function(sender, targetUserId, team, d
 	local data = PlayerData[targetUserId]
 	if not data then return end
 
-	-- SAVE previous military info before going civilian
-	if team == CIV_TEAM or team == INS_TEAM then
+	-- SAVE previous military info only if leaving military
+	if (team == CIV_TEAM or team == INS_TEAM) and data.Team ~= CIV_TEAM and data.Team ~= INS_TEAM then
 		data.PreviousRank = data.Rank
 		data.PreviousDivision = data.Division
 	end
 
 	data.Team = team
 
-	-- Civilian / Insurgency behavior
-	if team == CIV_TEAM or team == INS_TEAM then
+	-- Civilian behavior
+	if team == CIV_TEAM then
 		data.Rank = "Civilian"
 		data.Division = nil
+
+		-- Insurgency behavior
+	elseif team == INS_TEAM then
+		data.Rank = "Insurgent"
+		data.Division = nil
+
 	else
 
-		-- restore rank
-		if data.Rank == "Civilian" and data.PreviousRank then
+		if (data.Rank == "Civilian" or data.Rank == "Insurgent") and data.PreviousRank then
 			data.Rank = data.PreviousRank
 		end
 
@@ -498,3 +508,4 @@ end
 Players.PlayerRemoving:Connect(function(player)
 	savePlayer(player)
 end)
+
